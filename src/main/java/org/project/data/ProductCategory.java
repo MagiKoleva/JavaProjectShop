@@ -1,4 +1,4 @@
-package org.project;
+package org.project.data;
 
 public enum ProductCategory {
     FOOD, NON_FOOD
