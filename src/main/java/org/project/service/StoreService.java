@@ -14,6 +14,7 @@ public interface StoreService {
     Set<Product> deliverProducts(Store store, List<Product> delivery);
     void addProduct(Store store, Product product);
     void reduceProductQuantity(Store store, Product product, int quantity);
+    BigDecimal calculateUnitPrice(Store store, Product product);
 
     BigDecimal cashierSalaryExpenses(Store store, Set<Cashier> cashiers);
     BigDecimal deliveryExpenses(Store store, Set<Product> deliveredProducts);
