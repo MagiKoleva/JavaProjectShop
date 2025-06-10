@@ -1,4 +1,4 @@
-package org.project;
+package org.project.data;
 
 import java.math.BigDecimal;
 

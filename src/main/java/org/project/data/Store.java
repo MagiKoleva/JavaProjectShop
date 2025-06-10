@@ -1,7 +1,5 @@
 package org.project.data;
 
-import org.project.Cashier;
-import org.project.Client;
 import org.project.Receipt;
 
 import java.math.BigDecimal;
@@ -12,17 +10,17 @@ public class Store {
     private String name;
     private Set<Product> products; // the products available in the store
     private EnumMap<ProductCategory, BigDecimal> markupPercentages;
-    //private BigDecimal markupPercentage;
+
     private int maxDaysUntilExpiration;
     private BigDecimal reduceByPercentage;
+
     private Map<Product, BigDecimal> sellingPrices;
 
     private int cashRegisters;
     private Set<Cashier> cashiers;
 
     private Set<Product> deliveredProducts;
-    private Map<Product, BigDecimal> soldProducts; // the product and its quantity
-    //private Set<Product> soldProducts;
+    private Map<Product, BigDecimal> soldProducts; // the product and the sold quantity
 
     private Queue<Client> clients;
     private Set<Receipt> issuedReceipts;
@@ -39,6 +37,7 @@ public class Store {
         this.reduceByPercentage = reduceByPercentage;
         this.cashRegisters = cashRegisters;
 
+        sellingPrices = new HashMap<>();
         cashiers = new HashSet<>();
         deliveredProducts = new HashSet<>();
         soldProducts = new HashMap<>();

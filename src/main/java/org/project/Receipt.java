@@ -1,12 +1,11 @@
 package org.project;
 
+import org.project.data.Cashier;
 import org.project.data.Product;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Set;
 
 public class Receipt {
 
