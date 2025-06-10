@@ -1,15 +1,15 @@
-package org.project.service;
+package org.project.service.impl;
 
 import org.project.data.Cashier;
 import org.project.data.Product;
 import org.project.data.Store;
 import org.project.exceptions.ExpiryDateReachedException;
 import org.project.exceptions.NotEnoughQuantityException;
+import org.project.service.StoreService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
 import java.util.Set;
 
 public class StoreServiceImpl implements StoreService {
@@ -158,12 +158,27 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
-    public BigDecimal soldProductsIncome(Store store, Map<Product, BigDecimal> soldProducts) {
-        return null;
+    public BigDecimal soldProductsIncome(Store store) {
+        BigDecimal income = BigDecimal.ZERO;
+        for (Product p : store.getSoldProducts().keySet()) {
+            income.add(store.getSoldProducts().get(p).multiply(store.getSellingPrices().get(p)));
+        }
+        return income;
     }
 
     @Override
-    public BigDecimal storeProfit(Store store, BigDecimal revenue, BigDecimal expenses) {
-        return null;
+    public BigDecimal storeProfit(Store store) {
+        BigDecimal expenses = BigDecimal.ZERO;
+        expenses.add(cashierSalaryExpenses(store));
+        expenses.add(deliveryExpenses(store));
+
+        BigDecimal revenue = BigDecimal.ZERO;
+        revenue.add(soldProductsIncome(store));
+
+        BigDecimal profit = BigDecimal.ZERO;
+        profit.add(expenses);
+        profit.add(revenue);
+
+        return profit;
     }
 }

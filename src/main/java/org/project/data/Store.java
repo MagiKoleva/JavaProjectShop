@@ -1,7 +1,5 @@
 package org.project.data;
 
-import org.project.Receipt;
-
 import java.math.BigDecimal;
 import java.util.*;
 

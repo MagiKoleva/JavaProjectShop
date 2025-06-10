@@ -27,6 +27,6 @@ public interface StoreService {
 
     BigDecimal cashierSalaryExpenses(Store store);
     BigDecimal deliveryExpenses(Store store);
-    BigDecimal soldProductsIncome(Store store, Map<Product, BigDecimal> soldProducts);
-    BigDecimal storeProfit(Store store, BigDecimal revenue, BigDecimal expenses);
+    BigDecimal soldProductsIncome(Store store);
+    BigDecimal storeProfit(Store store);
 }
