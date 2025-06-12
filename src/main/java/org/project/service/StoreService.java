@@ -16,19 +16,12 @@ public interface StoreService {
     boolean isDiscountApplicable(Store store, long daysToExpiry);
     BigDecimal calculateBasePriceWithMarkup(Product product, Store store);
     BigDecimal applyDiscountIfNeeded(BigDecimal basePrice, Store store);
-
-    //boolean isProductExpired(Store store, Product product);
-    //BigDecimal calculateUnitMarkupPrice(Store store, Product product);
-    //BigDecimal calculateUnitReducedPrice(Store store, BigDecimal price);
-    //BigDecimal calculateUnitTotalPrice(Store store, Product product);
     void setSellingUnitPrices(Store store);
 
-    boolean hasEnoughProducts(Product product, BigDecimal qtyToSell);
     void reduceProductQuantity(Product product, BigDecimal quantity);
     void loadItemsInReceipt(Store store, Client client, Receipt receipt);
     void calculateTotalPrice(Receipt receipt);
     Receipt sellProduct(Store store, Client client, Receipt receipt);
-    //void sellProduct(Store store, Receipt receipt);
 
     void hireCashiers(Store store, Cashier cashier);
 
@@ -36,4 +29,8 @@ public interface StoreService {
     BigDecimal deliveryExpenses(Store store);
     BigDecimal soldProductsIncome(Store store);
     BigDecimal storeProfit(Store store);
+
+    void validateProductNotExpired(Store store, Product product);
+    void validateHasEnoughProducts(Product product, BigDecimal qty);
+    void validateClientHasEnoughMoney(Client client, BigDecimal requiredAmount);
 }

@@ -25,7 +25,8 @@ public class Store {
     private BigDecimal turnover;
     private int receiptsCount;
 
-    public Store(String name, BigDecimal markupFood, BigDecimal markupNonFood, int maxDaysUntilExpiration, BigDecimal reduceByPercentage, int cashRegisters) {
+    public Store(String name, BigDecimal markupFood, BigDecimal markupNonFood, int maxDaysUntilExpiration,
+                 BigDecimal reduceByPercentage, int cashRegisters) {
         this.name = name;
         products = new HashSet<>();
 

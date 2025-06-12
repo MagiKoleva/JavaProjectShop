@@ -9,12 +9,6 @@ public class Cashier implements Serializable {
     private final int id;
     private BigDecimal salary;
 
-    /*public Cashier(BigDecimal salary, int id, String name) {
-        this.salary = salary;
-        this.id = id;
-        this.name = name;
-    }*/
-
     public Cashier(String name, int id, BigDecimal salary) {
         this.name = name;
         this.id = id;

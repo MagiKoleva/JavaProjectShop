@@ -4,6 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.project.data.*;
 import org.project.exceptions.ExpiryDateReachedException;
+import org.project.exceptions.NotEnoughQuantityException;
+import org.project.exceptions.NotEnoughResourcesException;
 import org.project.service.impl.StoreServiceImpl;
 
 import java.math.BigDecimal;
@@ -17,6 +19,8 @@ public class StoreServiceImplTest {
 
     private StoreServiceImpl storeService;
     private Store store;
+    private Product soonExpiring;
+    private Product lowStock;
 
     @BeforeEach
     void setUp() {
@@ -30,6 +34,16 @@ public class StoreServiceImplTest {
                 BigDecimal.valueOf(20),
                 2
         );
+        soonExpiring = new Product(1, "Yogurt",
+                BigDecimal.valueOf(1.0),
+                ProductCategory.FOOD,
+                LocalDate.now().plusDays(1), // изтича утре
+                BigDecimal.valueOf(5));
+        lowStock = new Product(2, "Chips",
+                BigDecimal.valueOf(2.0),
+                ProductCategory.NON_FOOD,
+                LocalDate.now().plusMonths(6),
+                BigDecimal.valueOf(1));
     }
 
     @Test
@@ -53,7 +67,6 @@ public class StoreServiceImplTest {
 
     @Test
     void testSetSellingUnitPricesWithoutDiscount() {
-        // Non-food product → Non-food markup
         Product toothpaste = new Product(1, "Toothpaste", BigDecimal.valueOf(2.50), ProductCategory.NON_FOOD,
                 LocalDate.now().plusDays(10), BigDecimal.valueOf(5));
 
@@ -73,7 +86,6 @@ public class StoreServiceImplTest {
 
     @Test
     void testSetSellingUnitPricesWithDiscount() {
-        // Non-food product → expiry close → Discount applicable
         Product toothpaste = new Product(1, "Toothpaste", BigDecimal.valueOf(2.50), ProductCategory.NON_FOOD,
                 LocalDate.now().plusDays(2), BigDecimal.valueOf(5));
 
@@ -157,7 +169,7 @@ public class StoreServiceImplTest {
 
     @Test
     void integrationTestSellProductWithoutDiscount() {
-        // Product with expiry far enough → no discount
+        // Product with expiry far enough -> no discount
         Product bread = new Product(1, "Bread", BigDecimal.valueOf(1.00), ProductCategory.FOOD,
                 LocalDate.now().plusDays(10), BigDecimal.valueOf(20));
 
@@ -184,7 +196,7 @@ public class StoreServiceImplTest {
 
     @Test
     void integrationTestSellProductWithDiscount() {
-        // Product with expiry soon → should get discount
+        // Product with expiry soon -> should get discount
         Product bread = new Product(1, "Bread", BigDecimal.valueOf(1.00), ProductCategory.FOOD,
                 LocalDate.now().plusDays(2), BigDecimal.valueOf(20));
 
@@ -202,7 +214,7 @@ public class StoreServiceImplTest {
         Receipt result = storeService.sellProduct(store, client, receipt);
 
         BigDecimal expectedUnitPrice = BigDecimal.valueOf(1.00)
-                .multiply(BigDecimal.valueOf(1.30)) // markup
+                .multiply(BigDecimal.valueOf(1.30)) // markup 30% for food
                 .multiply(BigDecimal.valueOf(1).subtract(BigDecimal.valueOf(20).divide(BigDecimal.valueOf(100)))); // discount
 
         BigDecimal expectedTotal = expectedUnitPrice
@@ -231,5 +243,27 @@ public class StoreServiceImplTest {
         storeService.sellProduct(store, client, receipt);
 
         assertTrue(receipt.getProductPriceQty().isEmpty(), "No items should be sold if expired");
+    }
+
+    @Test
+    void whenProductIsTooCloseToExpiry_thenThrowExpiryDateReachedException() {
+        assertThrows(ExpiryDateReachedException.class,
+                () -> storeService.validateProductNotExpired(store, soonExpiring));
+    }
+
+    @Test
+    void whenQuantityIsInsufficient_thenThrowNotEnoughQuantityException() {
+        assertThrows(NotEnoughQuantityException.class,
+                () -> storeService.validateHasEnoughProducts(lowStock, BigDecimal.valueOf(2)));
+    }
+
+    @Test
+    void whenClientHasNotEnoughMoney_thenNotEnoughResourcesExceptionIsThrown() {
+        Client client = new Client(1, BigDecimal.valueOf(5));
+
+        BigDecimal requiredAmount = BigDecimal.valueOf(20);
+
+        assertThrows(NotEnoughResourcesException.class, () ->
+                storeService.validateClientHasEnoughMoney(client, requiredAmount));
     }
 }

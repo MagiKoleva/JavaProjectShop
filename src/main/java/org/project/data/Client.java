@@ -32,6 +32,10 @@ public class Client {
         return productsToBuy;
     }
 
+    public void setProductsToBuy(Map<Product, BigDecimal> productsToBuy) {
+        this.productsToBuy = productsToBuy;
+    }
+
     public boolean enoughMoney(BigDecimal amount) {
         try {
             if (amount.compareTo(resources) > 0) {
