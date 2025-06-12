@@ -1,23 +1,33 @@
 package org.project.service.impl;
 
-import org.project.data.Cashier;
-import org.project.data.Product;
-import org.project.data.Store;
+import org.project.Main;
+import org.project.data.*;
 import org.project.exceptions.ExpiryDateReachedException;
 import org.project.exceptions.NotEnoughQuantityException;
+import org.project.service.FileService;
 import org.project.service.StoreService;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class StoreServiceImpl implements StoreService {
     @Override
     public void deliverProducts(Store store, Set<Product> delivery) {
-        store.setDeliveredProducts(delivery);
+        for (Product product : delivery) {
+            store.getProducts().add(product);
 
-        store.getProducts().addAll(delivery); // add the products to the products set as well
+            store.getDeliveredProducts().put(product,
+                    store.getDeliveredProducts().getOrDefault(product, BigDecimal.ZERO).add(product.getQuantity()));
+        }
+
+        /*store.setDeliveredProducts(delivery);
+
+        store.getProducts().addAll(delivery);*/ // add the products to the products set as well
     }
 
     @Override
@@ -26,77 +36,63 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
-    public boolean isProductExpired(Store store, Product product) {
-        try {
-            long daysToExp = ChronoUnit.DAYS.between(LocalDate.now(), product.getExpirationDate());
-            if (daysToExp < store.getMaxDaysUntilExpiration()) {
-                throw new ExpiryDateReachedException(
-                        "This product is expired!",
-                        product.getExpirationDate(),
-                        LocalDate.now()
-                );
-            }
-        } catch (ExpiryDateReachedException e) {
-            System.out.println("Caught: " + e.getMessage());
-            System.out.println("Product " + product.getName() + " can't be sold!");
-            return true;
-        }
-        return false;
+    public void printProducts(Store store) {
+        store.getProducts().stream()
+                .forEach(System.out::println);
     }
 
-    @Override
-    public BigDecimal calculateUnitMarkupPrice(Store store, Product product) {
-        // base price + markup percentage
+    public long calculateDaysToExpiry(Product product) {
+        return ChronoUnit.DAYS.between(LocalDate.now(), product.getExpirationDate());
+    }
+
+    public boolean isDiscountApplicable(Store store, long daysToExpiry) {
+        return daysToExpiry <= store.getMaxDaysUntilExpiration();
+    }
+
+    public BigDecimal calculateBasePriceWithMarkup(Product product, Store store) {
         BigDecimal markup = store.getMarkupPercentages().get(product.getCategory());
-        BigDecimal base = product.getUnitDeliveryPrice()
-                .multiply(BigDecimal.ONE.add(markup.divide(BigDecimal.valueOf(100))));
 
-        return base.setScale(2, BigDecimal.ROUND_HALF_UP);
+        return product.getUnitDeliveryPrice()
+                .multiply(BigDecimal.valueOf(1).add(markup.divide(BigDecimal.valueOf(100))))
+                .setScale(2, BigDecimal.ROUND_HALF_UP);
     }
 
-    @Override
-    public BigDecimal calculateUnitReducedPrice(Store store, BigDecimal price) {
-        // reduce price if the expiry date is close
-        BigDecimal reduction = store.getReduceByPercentage();
-        BigDecimal reducedPrice = price
-                .multiply(BigDecimal.ONE.subtract(reduction.divide(BigDecimal.valueOf(100))));
-
-        return reducedPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
-    }
-
-    @Override
-    public BigDecimal calculateUnitTotalPrice(Store store, Product product) {
-        BigDecimal priceWithMarkup = calculateUnitMarkupPrice(store, product);
-
-        if (!isProductExpired(store, product)) {
-            BigDecimal newPrice = calculateUnitReducedPrice(store, priceWithMarkup);
-            return newPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
-        }
-
-        return priceWithMarkup.setScale(2, BigDecimal.ROUND_HALF_UP);
+    public BigDecimal applyDiscountIfNeeded(BigDecimal basePrice, Store store) {
+        return basePrice.multiply(BigDecimal.valueOf(1).subtract(store.getReduceByPercentage().divide(BigDecimal.valueOf(100))))
+                .setScale(2, BigDecimal.ROUND_HALF_UP);
     }
 
     @Override
     public void setSellingUnitPrices(Store store) {
-        for (Product p : store.getDeliveredProducts()) {
+        for (Product product : store.getProducts()) {
+
+            // check if the product is expired
+            if (product.getExpirationDate().isBefore(LocalDate.now())) {
+                continue; // skip expired products
+            }
+
+            long daysToExpiry = calculateDaysToExpiry(product);
+            BigDecimal basePrice = calculateBasePriceWithMarkup(product, store);
+
+            BigDecimal finalPrice;
+            if (isDiscountApplicable(store, daysToExpiry)) {
+                finalPrice = applyDiscountIfNeeded(basePrice, store);
+            } else {
+                finalPrice = basePrice;
+            }
+
+            store.getSellingPrices().put(product, finalPrice);
+        }
+    }
+
+   /* @Override
+    public void setSellingUnitPrices(Store store) {
+        for (Product p : store.getDeliveredProducts().keySet()) {
             if (store.getSellingPrices().containsKey(p)) {
                 System.out.println("The price for this product is already calculated");
             } else {
                 BigDecimal totalPrice = calculateUnitTotalPrice(store, p);
                 store.getSellingPrices().put(p, totalPrice);
-            }
-        }
-    }
-
-    /*@Override
-    public void setQuantities(Store store, Product product) {
-        for (Product p : store.getDeliveredProducts().keySet()) {
-            if (store.getQuantities().containsKey(p)) {
-                BigDecimal currentValue = store.getQuantities().get(p);
-                store.getQuantities().replace(p, currentValue.add(store.getDeliveredProducts().get(p)));
-            } else {
-                BigDecimal quantity = store.getDeliveredProducts().get(p);
-                store.getQuantities().put(p, quantity);
             }
         }
     }*/
@@ -106,9 +102,9 @@ public class StoreServiceImpl implements StoreService {
         try {
             if (product.getQuantity().compareTo(qtyToSell) < 0) {
                 throw new NotEnoughQuantityException(
-                        "Not enough quantity!",
+                        "Not enough quantity!"/*,
                         product,
-                        qtyToSell
+                        qtyToSell*/
                 );
             }
         } catch (NotEnoughQuantityException e) {
@@ -127,12 +123,136 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
-    public void sellProduct(Store store, Product product, BigDecimal quantity) {
-        if (hasEnoughProducts(product, quantity)) {
-            store.getSoldProducts().put(product, quantity);
-            reduceProductQuantity(product, quantity);
+    public void loadItemsInReceipt(Store store, Client client, Receipt receipt) {
+        Map<Product, BigDecimal> toBuy = client.getProductsToBuy();
+        Map<Product, BigDecimal> prices = store.getSellingPrices();
+
+        for (Product p : toBuy.keySet()) {
+            BigDecimal qty = toBuy.get(p);
+            BigDecimal price = prices.get(p);
+
+            if (price.compareTo(BigDecimal.ZERO) > 0) {
+                Map<BigDecimal, BigDecimal> innerMap = new HashMap<>();
+                innerMap.put(qty, price);
+                receipt.getProductPriceQty().put(p, innerMap);
+            } else {
+                System.out.println("No price found for: " + p.getName());
+            }
         }
     }
+
+    @Override
+    public void calculateTotalPrice(Receipt receipt) {
+        BigDecimal totalPrice = BigDecimal.ZERO;
+        for (Map.Entry<Product, Map<BigDecimal, BigDecimal>> entry : receipt.getProductPriceQty().entrySet()) {
+            Map<BigDecimal, BigDecimal> priceQty = entry.getValue();
+            for (Map.Entry<BigDecimal, BigDecimal> pq : priceQty.entrySet()) {
+                BigDecimal unitPrice = pq.getKey();
+                BigDecimal quantity = pq.getValue();
+                BigDecimal total = unitPrice.multiply(quantity);
+                totalPrice = totalPrice.add(total);
+            }
+        }
+        receipt.setTotalPrice(totalPrice);
+    }
+
+    @Override
+    public Receipt sellProduct(Store store, Client client, Receipt receipt) {
+
+        Map<Product, Map<BigDecimal, BigDecimal>> productPriceQtyMap = new HashMap<>();
+        BigDecimal totalPrice = BigDecimal.ZERO;
+
+        for (Map.Entry<Product, BigDecimal> entry : client.getProductsToBuy().entrySet()) {
+            Product product = entry.getKey();
+            BigDecimal quantityToBuy = entry.getValue();
+
+            try {
+                // Проверка за expiry
+                if (product.getExpirationDate().isBefore(LocalDate.now())) {
+                    throw new ExpiryDateReachedException("Product " + product.getName() + " is expired and cannot be sold.");
+                }
+
+                // Проверка за количество
+                if (product.getQuantity().compareTo(quantityToBuy) < 0) {
+                    throw new NotEnoughQuantityException(
+                            String.format("Not enough %s: needed %.2f, available %.2f",
+                                    product.getName(), quantityToBuy, product.getQuantity()));
+                }
+
+                // Намаляване на quantity
+                product.setQuantity(product.getQuantity().subtract(quantityToBuy));
+
+                // Добавяне в receipt map
+                BigDecimal unitSellingPrice = store.getSellingPrices().get(product);
+                BigDecimal productTotal = unitSellingPrice.multiply(quantityToBuy);
+
+                Map<BigDecimal, BigDecimal> priceQty = new HashMap<>();
+                priceQty.put(unitSellingPrice, quantityToBuy);
+                productPriceQtyMap.put(product, priceQty);
+
+                totalPrice = totalPrice.add(productTotal);
+
+                // Добавяне към soldProducts
+                store.getSoldProducts().put(product,
+                        store.getSoldProducts().getOrDefault(product, BigDecimal.ZERO).add(quantityToBuy));
+
+            } catch (ExpiryDateReachedException | NotEnoughQuantityException e) {
+                // Локално хващаме Exception → пишем съобщение → продължаваме с останалите продукти
+                System.err.println(e.getMessage());
+            }
+        }
+
+        //receipt.setProductPriceQty(new HashMap<>());
+
+        // Проверка дали клиентът има пари
+        if (client.getResources().compareTo(totalPrice) < 0) {
+            System.err.println("Client does not have enough money! Required: " + totalPrice + ", Available: " + client.getResources());
+            return receipt; // Връщаме празен/непълен Receipt
+        }
+
+        // Актуализираме парите на клиента
+        client.setResources(client.getResources().subtract(totalPrice));
+
+        // Попълваме Receipt
+        receipt.setProductPriceQty(productPriceQtyMap);
+        receipt.setTotalPrice(totalPrice);
+
+        // Актуализираме Store → receiptsCount и turnover
+        store.setReceiptsCount(store.getReceiptsCount() + 1);
+        store.setTurnover(store.getTurnover().add(totalPrice));
+
+        // Добавяме Receipt в Store
+        store.getIssuedReceipts().add(receipt);
+
+        return receipt;
+    }
+
+
+    /*@Override
+    public void sellProduct(Store store, Receipt receipt) {
+        for (Client client : store.getClients()) {
+            loadItemsInReceipt(store, client, receipt);
+            calculateTotalPrice(receipt);
+
+            Map<Product, BigDecimal> toBuy = client.getProductsToBuy();
+            BigDecimal totalPrice = receipt.getTotalPrice();
+
+            if (client.enoughMoney(totalPrice)) {
+                for (Product p : toBuy.keySet()) {
+                    if (hasEnoughProducts(p, toBuy.get(p))) {
+                        store.getSoldProducts().put(p, toBuy.get(p));
+                        reduceProductQuantity(p, toBuy.get(p));
+                    }
+                }
+            }
+            FileService fileService = new FileServiceImpl();
+            try {
+                fileService.issueReceipt(receipt, store);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }*/
 
     @Override
     public void hireCashiers(Store store, Cashier cashier) {
@@ -141,34 +261,60 @@ public class StoreServiceImpl implements StoreService {
 
     @Override
     public BigDecimal cashierSalaryExpenses(Store store) {
-        BigDecimal expenses = BigDecimal.ZERO;
+        return store.getCashiers().stream()
+                .map(Cashier::getSalary)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        /*BigDecimal expenses = BigDecimal.ZERO;
         for (Cashier cashier : store.getCashiers()) {
             expenses.add(cashier.getSalary());
         }
-        return expenses;
+        return expenses;*/
     }
 
     @Override
     public BigDecimal deliveryExpenses(Store store) {
-        BigDecimal expenses = BigDecimal.ZERO;
-        for (Product p : store.getDeliveredProducts()) {
+        return store.getDeliveredProducts().entrySet().stream()
+                .map(entry -> {
+                    Product product = entry.getKey();
+                    BigDecimal quantityDelivered = entry.getValue();
+                    BigDecimal unitDeliveryPrice = product.getUnitDeliveryPrice();
+                    return unitDeliveryPrice.multiply(quantityDelivered);
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        /*BigDecimal expenses = BigDecimal.ZERO;
+        for (Product p : store.getDeliveredProducts().keySet()) {
             expenses.add(p.getUnitDeliveryPrice().multiply(p.getQuantity()));
         }
-        return expenses;
+        return expenses;*/
     }
 
     @Override
     public BigDecimal soldProductsIncome(Store store) {
-        BigDecimal income = BigDecimal.ZERO;
+        return store.getSoldProducts().entrySet().stream()
+                .map(entry -> {
+                    Product product = entry.getKey();
+                    BigDecimal quantitySold = entry.getValue();
+                    BigDecimal unitSellingPrice = store.getSellingPrices().get(product);
+                    return unitSellingPrice.multiply(quantitySold);
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        /*BigDecimal income = BigDecimal.ZERO;
         for (Product p : store.getSoldProducts().keySet()) {
             income.add(store.getSoldProducts().get(p).multiply(store.getSellingPrices().get(p)));
         }
-        return income;
+        return income;*/
     }
 
     @Override
     public BigDecimal storeProfit(Store store) {
-        BigDecimal expenses = BigDecimal.ZERO;
+        BigDecimal income = soldProductsIncome(store);
+        BigDecimal deliveryExpenses = deliveryExpenses(store);
+        BigDecimal salaryExpenses = cashierSalaryExpenses(store);
+
+        return income
+                .subtract(deliveryExpenses)
+                .subtract(salaryExpenses);
+        /*BigDecimal expenses = BigDecimal.ZERO;
         expenses.add(cashierSalaryExpenses(store));
         expenses.add(deliveryExpenses(store));
 
@@ -179,6 +325,6 @@ public class StoreServiceImpl implements StoreService {
         profit.add(expenses);
         profit.add(revenue);
 
-        return profit;
+        return profit;*/
     }
 }

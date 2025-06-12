@@ -17,11 +17,13 @@ public class Store {
     private int cashRegisters;
     private Set<Cashier> cashiers;
 
-    private Set<Product> deliveredProducts;
+    private Map<Product, BigDecimal> deliveredProducts;
     private Map<Product, BigDecimal> soldProducts; // the product and the sold quantity
 
     private Queue<Client> clients;
     private Set<Receipt> issuedReceipts;
+    private BigDecimal turnover;
+    private int receiptsCount;
 
     public Store(String name, BigDecimal markupFood, BigDecimal markupNonFood, int maxDaysUntilExpiration, BigDecimal reduceByPercentage, int cashRegisters) {
         this.name = name;
@@ -37,10 +39,12 @@ public class Store {
 
         sellingPrices = new HashMap<>();
         cashiers = new HashSet<>();
-        deliveredProducts = new HashSet<>();
+        deliveredProducts = new HashMap<>();
         soldProducts = new HashMap<>();
         clients = new LinkedList<>();
         issuedReceipts = new HashSet<>();
+        this.turnover = BigDecimal.ZERO;
+        this.receiptsCount = 0;
     }
 
     public String getName() {
@@ -107,11 +111,11 @@ public class Store {
         this.cashiers = cashiers;
     }
 
-    public Set<Product> getDeliveredProducts() {
+    public Map<Product, BigDecimal> getDeliveredProducts() {
         return deliveredProducts;
     }
 
-    public void setDeliveredProducts(Set<Product> deliveredProducts) {
+    public void setDeliveredProducts(Map<Product, BigDecimal> deliveredProducts) {
         this.deliveredProducts = deliveredProducts;
     }
 
@@ -137,5 +141,21 @@ public class Store {
 
     public void setIssuedReceipts(Set<Receipt> issuedReceipts) {
         this.issuedReceipts = issuedReceipts;
+    }
+
+    public int getReceiptsCount() {
+        return receiptsCount;
+    }
+
+    public void setReceiptsCount(int receiptsCount) {
+        this.receiptsCount = receiptsCount;
+    }
+
+    public BigDecimal getTurnover() {
+        return turnover;
+    }
+
+    public void setTurnover(BigDecimal turnover) {
+        this.turnover = turnover;
     }
 }

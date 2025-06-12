@@ -1,17 +1,24 @@
 package org.project.data;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
-public class Cashier {
+public class Cashier implements Serializable {
 
     private String name;
     private final int id;
     private BigDecimal salary;
 
-    public Cashier(BigDecimal salary, int id, String name) {
+    /*public Cashier(BigDecimal salary, int id, String name) {
         this.salary = salary;
         this.id = id;
         this.name = name;
+    }*/
+
+    public Cashier(String name, int id, BigDecimal salary) {
+        this.name = name;
+        this.id = id;
+        this.salary = salary;
     }
 
     public String getName() {

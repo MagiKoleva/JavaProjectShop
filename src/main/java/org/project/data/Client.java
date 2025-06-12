@@ -4,18 +4,20 @@ import org.project.exceptions.NotEnoughResourcesException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Client {
 
     private int id;
     private BigDecimal resources;
-    private List<Product> productsToBuy;
+    private Map<Product, BigDecimal> productsToBuy; // products and quantity to be bought
 
     public Client(int id, BigDecimal resources) {
         this.id = id;
         this.resources = resources;
-        this.productsToBuy = new ArrayList<>();
+        this.productsToBuy = new HashMap<>();
     }
 
     public BigDecimal getResources() {
@@ -24,6 +26,10 @@ public class Client {
 
     public void setResources(BigDecimal resources) {
         this.resources = resources;
+    }
+
+    public Map<Product, BigDecimal> getProductsToBuy() {
+        return productsToBuy;
     }
 
     public boolean enoughMoney(BigDecimal amount) {
